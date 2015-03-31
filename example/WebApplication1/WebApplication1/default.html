@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html ng-app="myAngularApp">
+<head>
+    <title>My Fun Little Demo</title>
+    <!-- Make sure you include the mobile services js file, otherwise we get angular errors that make no sense -->
+    <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/mobileservices/mobileservices.web-1.2.5.min.js"></script>
+
+    <!-- azure mobile angular services uses minimal angular capabilities so it only requires the core angular.js file -->
+    <script type="text/javascript" src="./Scripts/angular.js"></script>
+
+    <script type="text/javascript" src="./Scripts/azuremobileangularservices.js"></script>
+    <script type="text/javascript">
+        //As usual declare your Angular App here as well as any dependent modules
+        var myAngularApp = angular.module('myAngularApp', [
+            'azureServicesModule'
+        ]);
+
+        //This is a simple controller.  Notice the dependency on the 'AzureMobileServices' --> This is the object that is created in the angular.factory call
+        myAngularApp.controller('myController', ['$scope', 'AzureMobileServices',
+            function ($scope, AzureMobileServices) {
+                //dataTableValues is our place holder array.  When we read from the Azure Web Services it will get populated so [] is fine for now
+                $scope.dataTableValues = [];
+                //If we want to immediately initialize then we could do the following:
+                //AzureMobileServices.read("datatable", null)
+                //    .then(function (items) {
+                //        $scope.dataTableValues = items;
+                //    });
+                
+
+                //Junk text string, this just makes shows we are 'binding' to the html
+                $scope.someText = "This is some text";
+
+                //I prefer giving $scope a read function rather than the direct initialization of controller attributes so I can bind
+                //the read function/action to buttons or other HTML UI triggering elements or call it from other methods (add, update, delete).
+                $scope.read = function () {
+                    AzureMobileServices.read("datatable", null).then(function (myTableObjs) {
+                        $scope.dataTableValues = myTableObjs;
+                    });
+                }
+
+                //Give Scope a Write function.  Again this isn't required, but since Azure Tables have nothing in them we need a way to push at least
+                //one item to the table.
+                $scope.write = function () {
+                    AzureMobileServices.create("datatable", { 'displaystring': 'Items #1', 'displaynumber': 1, 'displaydate': new Date(), 'displaybool': false })
+                    .then(function (result) {
+                        //at this point we wrote to the db correctly.  Azure Web Services returns the last item inserted/updated so we also return that same
+                        //object.  It is possible to just update the dataTableValues like so:
+                        //$scope.dataTableValues.push(result);
+                        //but we may have other logic we want to use so instead or others may have updated the table too so we use the full read
+                        $scope.read();
+                    });
+                }
+
+                //OK so our controller is fully set up and we have added the bindable elements and functions to $scope.  Now since we want data to show up
+                //on the page when it loads we need to initiate the first read.
+                $scope.read();
+            }
+        ]);
+    </script>
+</head>
+<body ng-controller="myController">
+    <div>
+        {{2+5}}
+    </div>
+    <div>{{someText}}</div>
+    <div>
+        <button ng-click="read()">Refresh</button>
+        <ul ng-repeat="row in dataTableValues">
+            <li>{{row.displaystring}}</li>
+        </ul>
+    </div>
+    <div><button ng-click="write()">Create An Item</button></div>
+</body>
+</html>
